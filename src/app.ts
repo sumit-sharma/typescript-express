@@ -1,16 +1,18 @@
 import * as express from 'express';
 import * as bodyParser from 'body-parser';
-
+import * as mongoose from 'mongoose';
+import Controller from './interfaces/controller.interface'
 class App {
     public app: express.Application;
-    public port: number;
+    public port: any;
 
-    constructor(controllers, port) {
+    constructor(controllers: Controller[]) {
         this.app = express();
-        this.port = port;
-
+        this.port  = process.env.PORT || 5000;
+        this.connectToDatabase();
         this.initializeMiddlewares();
         this.initializeControllers(controllers);
+        
     }
 
 
@@ -18,7 +20,7 @@ class App {
         this.app.use(bodyParser.json());
     }
 
-    private initializeControllers(controllers) {
+    private initializeControllers(controllers: Controller[]) {
         controllers.forEach(controller => {
             this.app.use('/', controller.router);
         });
@@ -28,6 +30,16 @@ class App {
         this.app.listen(this.port, () => {
             console.log(`App listening to port ${this.port}`);
         });
+    }
+
+    private connectToDatabase() {
+        const {
+            MONGO_USER,
+            MONGO_PASSWORD,
+            MONGO_PATH
+        } = process.env;
+        
+        mongoose.connect(`mongodb://${MONGO_PATH}`);
     }
     
 }

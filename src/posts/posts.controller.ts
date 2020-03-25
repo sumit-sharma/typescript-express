@@ -1,5 +1,8 @@
 import * as express from 'express';
+import Controller from '../interfaces/controller.interface';
 import Post from './posts.interface';
+import postModel from "./posts.model";
+
 
 class PostController {
 
@@ -7,14 +10,7 @@ class PostController {
 
     public router = express.Router();
 
-    private posts: Post[] = [
-        {
-            "author": "anmol rawat",
-            "content": "fictional",
-            "title": "unprivilaged child",
-            "time": new Date().toUTCString(),
-        }
-    ];
+    private post = postModel;
 
     constructor() {
         this.initializeRoutes();
@@ -23,22 +19,65 @@ class PostController {
 
     public initializeRoutes() {
         this.router.get(this.path, this.getAllPosts);
-        this.router.post(this.path, this.createAPost);
+        this.router.get(`${this.path}/:id`, this.getPostById);
+        this.router.put(`${this.path}/:id`, this.modifyPost);
+        this.router.post(this.path, this.createPost);
+        this.router.delete(`${this.path}/:id`, this.deletePost);
     }
 
 
 
-    getAllPosts = (request: express.Request, response: express.Response) => {
-        // this.posts.pop();
-        response.send(this.posts);
+    private getAllPosts = (request: express.Request, response: express.Response) => {
+        this.post.find()
+            .then((posts) => {
+                response.send(posts);
+            });
     };
 
 
-    createAPost = (req: express.Request, res: express.Response) => {
-        req.body.time = new Date().toUTCString();
-        const post: Post = req.body;
-        this.posts.push(post);
-        res.send(post);
+    private modifyPost = (req: express.Request, res: express.Response) => {
+        const id = req.params.id;
+        req.body.updated_at = new Date().toUTCString();
+        const postData: Post = req.body
+        this.post.findByIdAndUpdate(id, postData, { new: true })
+            .then((post) => {
+                res.send(post);
+            });
+    };
+
+    private getPostById = (req: express.Request, res: express.Response) => {
+        const id = req.params.id;
+        this.post.findById(id)
+            .then((post) => {
+                res.send(post);
+            });
+    };
+
+
+    private createPost = (req: express.Request, res: express.Response) => {
+        // req.body.created_at = new Date().toUTCString();
+        const postData: Post = req.body;
+        console.log(postData);
+        
+        const createdPost = new this.post(postData);
+        createdPost.save()
+            .then((savedPost) => {
+                res.send(savedPost);
+            });
+    };
+
+
+
+    private deletePost = (req: express.Request, res: express.Response) => {
+        const id = req.params.id;
+        this.post.findByIdAndDelete(id)
+            .then((sucessResponse) => {
+                if (sucessResponse) {
+                    res.send(200);
+                } else {
+                    res.send(404);
+                }
+            })
     };
 }
 
