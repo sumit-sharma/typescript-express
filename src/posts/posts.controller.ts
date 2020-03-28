@@ -2,7 +2,9 @@ import * as express from 'express';
 import Controller from '../interfaces/controller.interface';
 import Post from './posts.interface';
 import postModel from "./posts.model";
-
+import PostNotFoundException from '../exceptions/PostNotFoundException';
+import CreatePostDto from "./posts.dto";
+import validationMiddleware from "../middleware/Validation.middleware";
 
 class PostController {
 
@@ -21,7 +23,7 @@ class PostController {
         this.router.get(this.path, this.getAllPosts);
         this.router.get(`${this.path}/:id`, this.getPostById);
         this.router.put(`${this.path}/:id`, this.modifyPost);
-        this.router.post(this.path, this.createPost);
+        this.router.post(this.path, validationMiddleware(CreatePostDto), this.createPost);
         this.router.delete(`${this.path}/:id`, this.deletePost);
     }
 
@@ -35,21 +37,29 @@ class PostController {
     };
 
 
-    private modifyPost = (req: express.Request, res: express.Response) => {
+    private modifyPost = (req: express.Request, res: express.Response, next: express.NextFunction) => {
         const id = req.params.id;
         req.body.updated_at = new Date().toUTCString();
         const postData: Post = req.body
         this.post.findByIdAndUpdate(id, postData, { new: true })
             .then((post) => {
-                res.send(post);
+                if (post) {
+                    res.send(post);
+                }else{
+                    next(new PostNotFoundException(id));
+                }
             });
     };
 
-    private getPostById = (req: express.Request, res: express.Response) => {
+    private getPostById = (req: express.Request, res: express.Response, next: express.NextFunction) => {
         const id = req.params.id;
         this.post.findById(id)
             .then((post) => {
-                res.send(post);
+                if (post) {
+                    res.send(post);
+                }else{
+                    next(new PostNotFoundException(id));
+                }
             });
     };
 
@@ -68,14 +78,14 @@ class PostController {
 
 
 
-    private deletePost = (req: express.Request, res: express.Response) => {
+    private deletePost = (req: express.Request, res: express.Response, next: express.NextFunction) => {
         const id = req.params.id;
         this.post.findByIdAndDelete(id)
             .then((sucessResponse) => {
                 if (sucessResponse) {
                     res.send(200);
                 } else {
-                    res.send(404);
+                    next(new PostNotFoundException(id));
                 }
             })
     };
